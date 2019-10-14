@@ -13,15 +13,18 @@ defmodule Tus.Patch do
       file = %Tus.File{file | offset: file.offset + data_size}
       Tus.cache_put(file, config)
 
+      uploaded_url =
       if upload_completed?(file) do
         Tus.storage_complete_upload(file, config)
-        config.on_complete_upload.(file)
+        url = config.on_complete_upload.(file)
         Tus.cache_delete(file, config)
+        url
       end
 
       conn
       |> put_resp_header("tus-resumable", config.version)
       |> put_resp_header("upload-offset", "#{file.offset}")
+      |> put_resp_header("URL", uploaded_url)
       |> resp(:no_content, "")
     else
       :file_not_found ->
